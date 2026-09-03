@@ -93,7 +93,7 @@ type MappedField =
   | null;
 
 const GENERIC_ALIASES: Array<{ keys: string[]; field: MappedField }> = [
-  { keys: ["symbol", "ticker", "pair", "instrument", "security", "item", "currency", "asset", "market"], field: "symbol" },
+  { keys: ["symbol", "ticker", "pair", "instrument", "security", "item", "currency", "asset"], field: "symbol" },
   { keys: ["direction", "side", "type", "position", "ordertype", "tradetype", "dealtype", "buyorsell", "longshort"], field: "direction" },
   { keys: ["entryprice", "entry", "openprice", "open", "inprice", "buyprice", "entryrate", "openrate", "rateopen", "priceopen", "executionprice"], field: "entryPrice" },
   { keys: ["exitprice", "exit", "closeprice", "close", "outprice", "sellprice", "exitrate", "closerate", "rateclose", "priceclose"], field: "exitPrice" },
@@ -172,6 +172,7 @@ function mapWithTable(norm: string, table: Array<{ keys: string[]; field: Mapped
     if (keys.includes(norm)) return field;
   }
   // fuzzy contains-match (only for keys with 3+ chars to avoid noise)
+  if (norm.length < 3) return undefined;
   for (const { keys, field } of table) {
     if (keys.some((k) => k.length >= 3 && (norm.includes(k) || k.includes(norm)))) return field;
   }
@@ -186,6 +187,7 @@ const SIGNATURES: Array<{ platform: PlatformId; keys: string[]; weight: number; 
   { platform: "mt5-deals", keys: ["deal", "direction"], weight: 3, label: "Deal + Direction columns (MT5 deal ledger)" },
   { platform: "ctrader", keys: ["positionid", "entrytime", "exitprice"], weight: 3, label: "Position ID + Entry/Exit columns (cTrader)" },
   { platform: "ctrader", keys: ["entryprice", "exitprice", "netprofit"], weight: 2, label: "Entry/Exit price + net profit columns (cTrader)" },
+  { platform: "ctrader", keys: ["symbol", "type", "opentime", "closeprice", "closetime"], weight: 3, label: "Symbol + open/close trade columns (cTrader history)" },
   { platform: "mt4", keys: ["ticket", "opentime", "closetime"], weight: 3, label: "Ticket + Open/Close time columns (MetaTrader)" },
   { platform: "mt4", keys: ["ticket", "type", "size", "item"], weight: 3, label: "Ticket/Type/Size/Item columns (MT4 history)" },
   { platform: "mt5", keys: ["ticket", "type", "volume", "swap", "profit"], weight: 2, label: "Ticket + Volume + Swap/Profit columns (MetaTrader)" },
@@ -306,23 +308,33 @@ function looksLikeHeader(cells: unknown[]): boolean {
 }
 
 function splitTextTable(text: string): ExtractedTable {
-  const lines = text
+  let lines = text
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
   if (lines.length === 0) return { headers: null, rows: [], source: "empty text" };
 
-  const delimiter = detectDelimiter(lines[0]);
-  const firstCells = splitLine(lines[0], delimiter);
-  const hasHeader = looksLikeHeader(firstCells);
-  const dataLines = hasHeader ? lines.slice(1) : lines;
+  // Some broker exports declare the delimiter and add a title before the
+  // actual header (for example: `sep=,` / `Trade History`).
+  let delimiter = detectDelimiter(lines[0]);
+  const separator = lines[0].match(/^sep\s*=\s*(.)\s*$/i);
+  if (separator) {
+    delimiter = separator[1];
+    lines = lines.slice(1);
+  }
+  const headerIndex = lines
+    .slice(0, Math.min(lines.length, 10))
+    .findIndex((line) => looksLikeHeader(splitLine(line, delimiter)));
+  const hasHeader = headerIndex >= 0;
+  const firstCells = hasHeader ? splitLine(lines[headerIndex], delimiter) : splitLine(lines[0], delimiter);
+  const dataLines = hasHeader ? lines.slice(headerIndex + 1) : lines;
 
   const rows: unknown[][] = dataLines.map((line) => {
-    const lineDelim = detectDelimiter(line);
-    let cells = splitLine(line, lineDelim);
+    let cells = splitLine(line, delimiter);
     const want = firstCells.length;
+    const lineDelim = detectDelimiter(line);
     if (cells.length !== want && lineDelim !== delimiter) {
-      const alt = splitLine(line, delimiter);
+      const alt = splitLine(line, lineDelim);
       if (Math.abs(alt.length - want) < Math.abs(cells.length - want)) cells = alt;
     }
     return cells;
@@ -495,7 +507,10 @@ function coerceCell(field: MappedField, raw: unknown): unknown {
     case "exitPrice":
     case "stopLoss":
     case "takeProfit":
-      return coerceNumber(raw);
+      {
+        const value = coerceNumber(raw);
+        return value != null && value > 0 ? value : undefined;
+      }
     case "entryTime":
     case "exitTime":
       return coerceDate(raw);
@@ -507,7 +522,10 @@ function coerceCell(field: MappedField, raw: unknown): unknown {
     case "emotionTag":
     case "notes":
     case "screenshotUrl":
-      return cellText(raw).trim();
+      {
+        const value = cellText(raw).trim();
+        return /^https?:\/\/\S+$/i.test(value) ? value : undefined;
+      }
     default:
       return cellText(raw).trim();
   }
@@ -521,6 +539,14 @@ const POSITIONAL_FIELDS = [
   "symbol", "direction", "entryPrice", "exitPrice", "stopLoss", "takeProfit",
   "entryTime", "exitTime", "strategy", "emotionTag", "setupGrade", "notes",
 ] as const;
+
+// Informational columns in broker exports must not win fuzzy alias matching
+// (for example, `marketPrice` must not replace the actual `symbol` column).
+const IGNORED_HEADERS = new Set([
+  "displayunitlabel", "lotsize", "mindistancetoprice", "marketprice", "points",
+  "decimals", "magicnumber", "orderstatus", "openedbyea", "ea",
+  "tags", "isghost", "confidencelevel", "backadjustment", "checklist",
+]);
 
 /** Rows whose Type column marks them as non-trades (funding ops, cancelled pendings). */
 const NON_TRADE_TYPE_RE = /balance|credit|deposit|withdraw|adjust|dividend|fee|correction|transfer|bonus|cancel|delet|expir|reject/i;
@@ -546,7 +572,7 @@ function buildFieldMap(platform: PlatformId, headers: string[] | null, sampleWid
   const override = platform === "generic" ? null : PLATFORM_ALIASES[platform];
   const provisional: MappedField[] = headers.map((h) => {
     const n = normalizeKey(h);
-    if (!n) return null;
+    if (!n || IGNORED_HEADERS.has(n)) return null;
     if (override) {
       const hit = mapWithTable(n, override);
       if (hit !== undefined) {

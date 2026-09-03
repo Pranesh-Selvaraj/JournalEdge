@@ -11,13 +11,18 @@ export function extractTradeFields(rawText: string): Omit<OcrExtraction, "rawTex
   const text = rawText ?? "";
   const num = (s: string | undefined): number | null => {
     if (!s) return null;
-    const n = Number(s.replace(/,/g, ""));
+    const normalized = s.replace(/[,\s]/g, "");
+    const n = Number(normalized);
     return Number.isFinite(n) ? n : null;
   };
 
-  const entryMatch = text.match(/entry[^0-9]{0,12}([\d]{1,3}(?:[,\d]*)(?:\.\d+)?)/i);
-  const slMatch = text.match(/(?:\bSL\b|stop\s*loss|stop)[^0-9]{0,12}([\d]{1,3}(?:[,\d]*)(?:\.\d+)?)/i);
-  const tpMatch = text.match(/(?:\bTP\b|take\s*profit|t\/p|target)[^0-9]{0,12}([\d]{1,3}(?:[,\d]*)(?:\.\d+)?)/i);
+  // Keep the label/value relationship intact even when OCR inserts a line
+  // break between them. Values may be decimal prices or use thousands commas.
+  const price = "(-?(?:\\d[\\d,]*\\.?\\d*|\\.\\d+))";
+  const afterLabel = (label: string): number | null => num(text.match(new RegExp(`${label}[^0-9.-]{0,32}${price}`, "i"))?.[1]);
+  const entryPrice = afterLabel("\\bentry(?:\\s+price)?\\b");
+  const stopLoss = afterLabel("(?:\\bSL\\b|\\bstop\\s*loss\\b|\\bstop\\b)");
+  const takeProfit = afterLabel("(?:\\bTP\\b|\\btake\\s*profit\\b|\\bt\\/p\\b|\\btarget\\b)");
 
   // Symbol: prefer first line tokens that look like tickers.
   const firstLines = text.split(/\n/).slice(0, 4).join(" ");
@@ -27,10 +32,18 @@ export function extractTradeFields(rawText: string): Omit<OcrExtraction, "rawTex
 
   return {
     symbol: symbolMatch?.[1]?.toUpperCase() ?? null,
-    entryPrice: num(entryMatch?.[1]),
-    stopLoss: num(slMatch?.[1]),
-    takeProfit: num(tpMatch?.[1]),
+    entryPrice,
+    stopLoss,
+    takeProfit,
   };
+}
+
+export function guessDirectionFromText(rawText: string): "long" | "short" | null {
+  const text = rawText ?? "";
+  const orderType = text.match(/\border\s*type\b[^a-z]*(buy|sell|long|short)\b/i)?.[1].toLowerCase();
+  if (orderType === "buy" || orderType === "long") return "long";
+  if (orderType === "sell" || orderType === "short") return "short";
+  return null;
 }
 
 /**
