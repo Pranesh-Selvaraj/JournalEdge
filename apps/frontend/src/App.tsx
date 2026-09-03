@@ -11,7 +11,6 @@ import { TradeList } from "./features/journal/TradeList";
 import { TradeForm } from "./features/journal/TradeForm";
 import { AnalyticsDashboard } from "./features/analytics/AnalyticsDashboard";
 
-// Re-export for tree-shaking friendliness; actual type comes from backend.
 export type { AppRouter };
 
 function makeClient() {
@@ -40,57 +39,39 @@ export default function App() {
   const { queryClient, trpcClient } = makeClient();
   const [tab, setTab] = useState<Tab>("upload");
   const [refreshKey, setRefreshKey] = useState(0);
+  const pageMeta: Record<Tab, { eyebrow: string; title: string; description: string }> = {
+    upload: { eyebrow: "Workspace / Smart entry", title: "Capture the trade, keep the edge.", description: "Bring in your market history in seconds, then turn every position into a useful decision log." },
+    journal: { eyebrow: "Workspace / Journal", title: "Your trading memory.", description: "Review the details that matter, spot patterns, and stay honest about your process." },
+    analytics: { eyebrow: "Workspace / Analytics", title: "Read the tape.", description: "A calm view of your performance, built from the trades you actually took." },
+  };
+  const meta = pageMeta[tab];
+  const goToJournal = () => { setRefreshKey((k) => k + 1); setTab("journal"); };
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <div className="min-h-screen">
-          <header className="border-b border-slate-800 bg-slate-900/60">
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-              <div>
-                <h1 className="text-xl font-bold tracking-tight">
-                  Journal<span className="text-emerald-400">Edge</span>
-                </h1>
-                <p className="text-xs text-slate-400">Smart trading journal — paste, OCR, analyze</p>
-              </div>
-              <nav className="flex gap-2">
-                {(
-                  [
-                    ["upload", "Smart Entry"],
-                    ["journal", "Journal"],
-                    ["analytics", "Analytics"],
-                  ] as Array<[Tab, string]>
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    onClick={() => setTab(id)}
-                    className={`rounded-lg px-3 py-2 text-sm font-medium ${
-                      tab === id ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-200 hover:bg-slate-700"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </header>
-
-          <main className="mx-auto max-w-6xl px-4 py-6">
+        <div className="app-shell min-h-screen">
+          <aside className="sidebar">
+            <div className="brand-mark"><span className="brand-icon">J</span><div><h1>Journal<span>Edge</span></h1><p>Trading, made visible.</p></div></div>
+            <div className="sidebar-label">Workspace</div>
+            <nav className="sidebar-nav">
+              {([["upload", "Smart entry", "↗"], ["journal", "Journal", "≡"], ["analytics", "Analytics", "◒"]] as Array<[Tab, string, string]>).map(([id, label, icon]) => (
+                <button key={id} onClick={() => setTab(id)} className={`sidebar-link ${tab === id ? "active" : ""}`}><span className="nav-icon">{icon}</span>{label}</button>
+              ))}
+            </nav>
+            <div className="sidebar-bottom"><div className="status-dot"><span /> Local workspace</div><p>Private by default.<br />Built for better decisions.</p></div>
+          </aside>
+          <main className="main-content">
+            <header className="topbar"><div className="breadcrumb">{meta.eyebrow}</div><div className="topbar-actions"><span className="live-pill"><span /> Synced</span><div className="avatar">TR</div></div></header>
+            <section className="page-intro"><div><p className="section-kicker">{meta.eyebrow}</p><h2>{meta.title}</h2><p className="intro-copy">{meta.description}</p></div><div className="date-chip">September 2026 <span>⌄</span></div></section>
             {tab === "upload" && (
-              <div className="grid gap-6">
-                <HistoryImporter onImported={() => { setRefreshKey((k) => k + 1); setTab("journal"); }} />
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <CopyPasteImporter onImported={() => { setRefreshKey((k) => k + 1); setTab("journal"); }} />
-                  <ScreenshotImporter onImported={() => { setRefreshKey((k) => k + 1); setTab("journal"); }} />
-                </div>
+              <div className="content-stack">
+                <section className="welcome-panel"><div><p className="section-kicker accent">THE QUICK START</p><h3>How did you trade today?</h3><p>Choose the fastest way to get your positions into the journal.</p></div><div className="quick-stat"><strong>01</strong><span>Import, review,<br />improve.</span></div></section>
+                <HistoryImporter onImported={goToJournal} />
+                <div className="import-grid"><CopyPasteImporter onImported={goToJournal} /><ScreenshotImporter onImported={goToJournal} /></div>
               </div>
             )}
-            {tab === "journal" && (
-              <div className="grid gap-6">
-                <TradeForm onSaved={() => setRefreshKey((k) => k + 1)} />
-                <TradeList key={refreshKey} />
-              </div>
-            )}
+            {tab === "journal" && <div className="content-stack"><TradeForm onSaved={() => setRefreshKey((k) => k + 1)} /><TradeList key={refreshKey} /></div>}
             {tab === "analytics" && <AnalyticsDashboard />}
           </main>
         </div>
