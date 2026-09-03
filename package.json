@@ -13,6 +13,8 @@
     "dev:backend": "pnpm --filter @journaledge/backend dev",
     "dev:frontend": "pnpm --filter @journaledge/frontend dev",
     "build": "pnpm -r build",
+    "test": "pnpm --filter @journaledge/backend test",
+    "check": "pnpm install --frozen-lockfile && pnpm build && pnpm test",
     "db:generate": "pnpm --filter @journaledge/backend db:generate",
     "db:migrate": "pnpm --filter @journaledge/backend db:migrate",
     "db:studio": "pnpm --filter @journaledge/backend db:studio"

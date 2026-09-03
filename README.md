@@ -1,5 +1,15 @@
 # JournalEdge
 
+> **JournalEdge** — the product name and top-bar logo are always written as one word with a capital `J` and capital `E`.
+
+### Official wordmark
+
+The website uses this exact wordmark in the top bar:
+
+![JournalEdge official wordmark](./apps/frontend/public/journaledge-wordmark.svg)
+
+The visual lockup is **Journal** in soft white followed immediately by **Edge** in emerald green. Keep the spelling, capitalization, order, and colors unchanged.
+
 A personal trading journal dashboard with smart entry methods (copy-paste parsing, screenshot OCR, manual entry), historical tracking, and detailed analytics.
 
 ## Tech Stack
@@ -103,6 +113,12 @@ Paste a screenshot (Ctrl+V) or drag-drop a file. Tesseract.js (frontend) extract
 | `pnpm build` | Build all workspaces |
 | `pnpm db:generate` | Drizzle generate migrations |
 | `pnpm db:migrate` | Drizzle apply migrations |
+| `pnpm test` | Run backend unit tests |
+| `pnpm check` | Install, build, and run the CI validation checks |
+
+## Delivery and security
+
+Every pull request is validated by GitHub Actions (`pnpm build` and `pnpm test`) and analyzed by CodeQL. Dependabot keeps pnpm and GitHub Action dependencies current. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the required branch protection rules and [SECURITY.md](./SECURITY.md) for vulnerability reporting and the production security baseline.
 
 ## License
 

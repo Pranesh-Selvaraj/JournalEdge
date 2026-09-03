@@ -52,7 +52,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <div className="app-shell min-h-screen">
           <aside className="sidebar">
-            <div className="brand-mark"><span className="brand-icon">J</span><div><h1>Journal<span>Edge</span></h1><p>Trading, made visible.</p></div></div>
+            <div className="brand-mark"><img src="/journaledge-wordmark.svg" alt="JournalEdge" width="150" height="28" /><div><p>Trading, made visible.</p></div></div>
             <div className="sidebar-label">Workspace</div>
             <nav className="sidebar-nav">
               {([["upload", "Smart entry", "↗"], ["journal", "Journal", "≡"], ["analytics", "Analytics", "◒"]] as Array<[Tab, string, string]>).map(([id, label, icon]) => (

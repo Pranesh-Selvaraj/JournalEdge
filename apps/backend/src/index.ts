@@ -10,6 +10,14 @@ const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:5173";
 
+app.disable("x-powered-by");
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  next();
+});
 app.use(cors({ origin: FRONTEND_URL }));
 app.use(express.json({ limit: "10mb" }));
 
