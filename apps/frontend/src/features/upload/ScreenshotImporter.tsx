@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { createWorker } from "tesseract.js";
 import { trpc } from "../../lib/trpc";
-import { extractTradeFields, guessDirectionFromColors, loadImage } from "./ocr";
+import { extractTradeFields, guessDirectionFromColors, guessDirectionFromText, loadImage } from "./ocr";
 
 /**
  * Screenshot Mode:
@@ -36,15 +36,16 @@ export function ScreenshotImporter({ onImported }: { onImported?: () => void }) 
       const text = data.text ?? "";
       setRawText(text);
       const fields = extractTradeFields(text);
-      setForm({
+      const textDirection = guessDirectionFromText(text);
+      setForm((current) => ({
         symbol: fields.symbol ?? "",
-        direction: dirGuess ?? "long",
+        direction: textDirection ?? dirGuess ?? current.direction,
         entryPrice: fields.entryPrice != null ? String(fields.entryPrice) : "",
         stopLoss: fields.stopLoss != null ? String(fields.stopLoss) : "",
         takeProfit: fields.takeProfit != null ? String(fields.takeProfit) : "",
-      });
+      }));
       setStatus(
-        `OCR done (confidence ${Math.round(data.confidence ?? 0)}%). Direction guess: ${dirGuess ?? "unknown"} — verify before saving.`,
+        `OCR done (confidence ${Math.round(data.confidence ?? 0)}%). Direction: ${textDirection ?? dirGuess ?? "unknown"} — verify before saving.`,
       );
     } catch (e) {
       setStatus(`OCR failed: ${e instanceof Error ? e.message : String(e)}`);
