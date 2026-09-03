@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+.env
+!.env.example
+*.local
+.DS_Store
+drizzle/
+pg_data/

@@ -1,0 +1,23 @@
+{
+  "name": "journaledge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "JournalEdge — personal trading journal dashboard with smart entry, tracking, and analytics",
+  "license": "MIT",
+  "packageManager": "pnpm@9.5.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "dev:backend": "pnpm --filter @journaledge/backend dev",
+    "dev:frontend": "pnpm --filter @journaledge/frontend dev",
+    "build": "pnpm -r build",
+    "db:generate": "pnpm --filter @journaledge/backend db:generate",
+    "db:migrate": "pnpm --filter @journaledge/backend db:migrate",
+    "db:studio": "pnpm --filter @journaledge/backend db:studio"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
