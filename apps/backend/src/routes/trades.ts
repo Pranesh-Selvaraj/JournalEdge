@@ -23,6 +23,7 @@ function toDbRow(input: Record<string, unknown>, userId?: string | null) {
     stopLoss: input.stopLoss != null ? String(input.stopLoss) : null,
     takeProfit: input.takeProfit != null ? String(input.takeProfit) : null,
     rMultiple: input.rMultiple != null ? String(input.rMultiple as number) : null,
+    profit: input.profit != null && input.profit !== "" ? String(input.profit) : null,
     entryTime: input.entryTime ? new Date(input.entryTime as string | Date) : null,
     exitTime: input.exitTime ? new Date(input.exitTime as string | Date) : null,
     strategy: (input.strategy as string) ?? null,
@@ -90,6 +91,7 @@ export const tradesRouter = router({
     if (patch.exitPrice !== undefined) patch.exitPrice = patch.exitPrice != null ? String(patch.exitPrice) : null;
     if (patch.stopLoss !== undefined) patch.stopLoss = patch.stopLoss != null ? String(patch.stopLoss) : null;
     if (patch.takeProfit !== undefined) patch.takeProfit = patch.takeProfit != null ? String(patch.takeProfit) : null;
+    if (patch.profit !== undefined) patch.profit = patch.profit != null && patch.profit !== "" ? String(patch.profit) : null;
     if (patch.entryTime) patch.entryTime = new Date(patch.entryTime as string | Date);
     if (patch.exitTime) patch.exitTime = new Date(patch.exitTime as string | Date);
     (patch as Record<string, unknown>).rMultiple = rMultiple != null ? String(rMultiple) : null;

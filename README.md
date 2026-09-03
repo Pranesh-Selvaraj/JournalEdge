@@ -84,6 +84,12 @@ Drop an old history export file — platform and columns are auto-detected, noth
 - **Smart bits:** header-signature scoring with confidence, MT4 duplicate Price/Time column disambiguation, Buy/Sell ↔ Long/Short coercion, currency/thousands separators, MT4 dot-dates (`2024.01.15 10:30`), Excel serial dates, title rows above headers skipped, deposits/balance ops/cancelled pendings skipped, ticket/volume/commission/swap/P&L folded into notes
 - Endpoint: `POST /api/import/preview` (multipart `file`) → editable preview → saved via tRPC `trades.importRows` in 500-row chunks (see `HistoryImporter.tsx`)
 
+### Outcomes & P&L
+Every trade shows an outcome badge in the journal — **Profit** / **Loss** / **Breakeven** / **Open** — with a filter and counts.
+- Automatic: derived from exit vs entry price and direction; broker P&L columns map to the `profit` field on import.
+- Configurable: set P&L manually per trade (manual entry, copy-paste, or history preview grids) — an explicit P&L always decides the outcome.
+- Analytics adds Total / Avg P&L cards whenever P&L data exists (see `getTradeOutcome` in `packages/shared-types`).
+
 ### Screenshot Mode
 Paste a screenshot (Ctrl+V) or drag-drop a file. Tesseract.js (frontend) extracts:
 - Entry price (`Entry` label), SL (`SL`), TP (`TP`), Symbol (chart header)

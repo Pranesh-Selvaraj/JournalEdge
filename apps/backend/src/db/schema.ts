@@ -21,6 +21,8 @@ export const trades = pgTable("trades", {
   stopLoss: numeric("stop_loss", { precision: 18, scale: 8 }),
   takeProfit: numeric("take_profit", { precision: 18, scale: 8 }),
   rMultiple: numeric("r_multiple", { precision: 18, scale: 4 }),
+  /** Realized profit/loss in account currency (auto-filled from broker imports, or set manually). */
+  profit: numeric("profit", { precision: 18, scale: 2 }),
   entryTime: timestamp("entry_time"),
   exitTime: timestamp("exit_time"),
   strategy: text("strategy"),

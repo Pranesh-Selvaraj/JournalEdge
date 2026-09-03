@@ -8,6 +8,7 @@ interface EditableRow {
   exitPrice?: number | string | null;
   stopLoss?: number | string | null;
   takeProfit?: number | string | null;
+  profit?: number | string | null;
   strategy?: string;
   notes?: string;
 }
@@ -38,6 +39,7 @@ export function CopyPasteImporter({ onImported }: { onImported?: () => void }) {
           exitPrice: (r.exitPrice as number | null) ?? "",
           stopLoss: (r.stopLoss as number | null) ?? "",
           takeProfit: (r.takeProfit as number | null) ?? "",
+          profit: (r.profit as number | null) ?? "",
           strategy: (r.strategy as string) ?? "",
           notes: (r.notes as string) ?? "",
         })),
@@ -59,6 +61,7 @@ export function CopyPasteImporter({ onImported }: { onImported?: () => void }) {
       exitPrice: r.exitPrice === "" || r.exitPrice == null ? undefined : Number(r.exitPrice),
       stopLoss: r.stopLoss === "" || r.stopLoss == null ? undefined : Number(r.stopLoss),
       takeProfit: r.takeProfit === "" || r.takeProfit == null ? undefined : Number(r.takeProfit),
+      profit: r.profit === "" || r.profit == null ? undefined : Number(r.profit),
       strategy: r.strategy || undefined,
       notes: r.notes || undefined,
     }));
@@ -122,6 +125,7 @@ export function CopyPasteImporter({ onImported }: { onImported?: () => void }) {
                 <th className="p-1">Exit</th>
                 <th className="p-1">SL</th>
                 <th className="p-1">TP</th>
+                <th className="p-1">P&amp;L</th>
               </tr>
             </thead>
             <tbody>
@@ -138,6 +142,7 @@ export function CopyPasteImporter({ onImported }: { onImported?: () => void }) {
                   <td className="p-1"><input value={String(r.exitPrice ?? "")} onChange={(e) => updateRow(i, { exitPrice: e.target.value })} className="w-20 rounded bg-slate-950 p-1" /></td>
                   <td className="p-1"><input value={String(r.stopLoss ?? "")} onChange={(e) => updateRow(i, { stopLoss: e.target.value })} className="w-20 rounded bg-slate-950 p-1" /></td>
                   <td className="p-1"><input value={String(r.takeProfit ?? "")} onChange={(e) => updateRow(i, { takeProfit: e.target.value })} className="w-20 rounded bg-slate-950 p-1" /></td>
+                  <td className="p-1"><input value={String(r.profit ?? "")} onChange={(e) => updateRow(i, { profit: e.target.value })} className="w-20 rounded bg-slate-950 p-1" placeholder="+/-" /></td>
                 </tr>
               ))}
             </tbody>

@@ -79,6 +79,7 @@ type MappedField =
   | "takeProfit"
   | "entryTime"
   | "exitTime"
+  | "profit"
   | "strategy"
   | "emotionTag"
   | "setupGrade"
@@ -109,7 +110,7 @@ const GENERIC_ALIASES: Array<{ keys: string[]; field: MappedField }> = [
   { keys: ["volume", "size", "lots", "lot", "qty", "quantity", "amount", "contracts", "units"], field: "extra:volume" },
   { keys: ["commission", "comm", "fees", "fee", "cost"], field: "extra:commission" },
   { keys: ["swap", "swaps", "overnight", "rollovercharge"], field: "extra:swap" },
-  { keys: ["profit", "pl", "pnl", "net", "netpl", "netprofit", "gross", "grosspl", "grossprofit", "profitloss", "result", "gainloss"], field: "extra:profit" },
+  { keys: ["profit", "pl", "pnl", "net", "netpl", "netprofit", "gross", "grosspl", "grossprofit", "profitloss", "result", "gainloss", "profitability"], field: "profit" },
 ];
 
 /** Platform-specific overrides applied BEFORE the generic table. */
@@ -154,16 +155,16 @@ const PLATFORM_ALIASES: Record<Exclude<PlatformId, "generic">, Array<{ keys: str
     { keys: ["volume", "quantity"], field: "extra:volume" },
     { keys: ["commission"], field: "extra:commission" },
     { keys: ["swap"], field: "extra:swap" },
-    { keys: ["gross", "grossprofit", "net", "netprofit", "pnl", "profit"], field: "extra:profit" },
+    { keys: ["gross", "grossprofit", "net", "netprofit", "pnl", "profit"], field: "profit" },
   ],
 };
 
-/** Refine MT4's grouped extras (commission/taxes/swap/profit got one bucket above). */
+/** Refine MT4's grouped extras (commission/taxes/swap got one bucket above). Profit maps to the P&L field. */
 const MT4_EXTRA_FIX: Record<string, MappedField> = {
   commission: "extra:commission",
   taxes: "extra:commission",
   swap: "extra:swap",
-  profit: "extra:profit",
+  profit: "profit",
 };
 
 function mapWithTable(norm: string, table: Array<{ keys: string[]; field: MappedField }>): MappedField | undefined {
@@ -498,6 +499,8 @@ function coerceCell(field: MappedField, raw: unknown): unknown {
     case "entryTime":
     case "exitTime":
       return coerceDate(raw);
+    case "profit":
+      return coerceNumber(raw);
     case "setupGrade":
       return cellText(raw).trim().toUpperCase().replace(/\s+/g, "");
     case "strategy":
@@ -547,8 +550,10 @@ function buildFieldMap(platform: PlatformId, headers: string[] | null, sampleWid
     if (override) {
       const hit = mapWithTable(n, override);
       if (hit !== undefined) {
-        if (hit) detectedColumns[h] = hit;
-        return hit;
+        // MT4 groups commission/taxes/swap/profit under one alias entry — refine per column.
+        const f = platform === "mt4" && MT4_EXTRA_FIX[n] ? MT4_EXTRA_FIX[n] : hit;
+        if (f) detectedColumns[h] = f;
+        return f;
       }
     }
     const generic = mapWithTable(n, GENERIC_ALIASES);
@@ -691,6 +696,8 @@ function matchMt5Deals(headers: string[], dataRows: unknown[][]): {
       exitPrice: price,
       entryTime,
       exitTime: time,
+      // The closing deal's P&L is the realized P&L of this (fully or partially) closed position.
+      profit: profit ?? undefined,
       _rowNumber: rowNumber,
       _notes: [
         ticket ? `deal #${ticket}` : "",
@@ -698,7 +705,6 @@ function matchMt5Deals(headers: string[], dataRows: unknown[][]): {
         `mt5-deals FIFO · ${entryVol} matched`,
         Number.isFinite(accComm) && accComm !== 0 ? `comm ${accComm.toFixed(2)}` : "",
         Number.isFinite(accSwap) && accSwap !== 0 ? `swap ${accSwap.toFixed(2)}` : "",
-        profit != null ? `P/L ${profit}` : "",
       ]
         .filter(Boolean)
         .join(" · "),
@@ -790,6 +796,7 @@ export function smartParseTable(
         exitPrice: p.exitPrice,
         entryTime: p.entryTime,
         exitTime: p.exitTime,
+        profit: p.profit,
         notes: p._notes,
       },
       rowNumber: (p._rowNumber as number) ?? 0,
@@ -850,12 +857,12 @@ export function smartParseTable(
       }
 
       // Fold ticket/volume/costs into notes so history context is preserved.
+      // (Broker P&L now maps to the profit field directly.)
       const extraBits: string[] = [];
       if (extras.ticket) extraBits.push(`#${extras.ticket}`);
       if (extras.volume) extraBits.push(`${extras.volume} lots`);
       if (extras.commission) extraBits.push(`comm ${extras.commission}`);
       if (extras.swap) extraBits.push(`swap ${extras.swap}`);
-      if (extras.profit) extraBits.push(`P/L ${extras.profit}`);
       if (extraBits.length > 0) {
         const tag = `[imported ${detection.platform}${extraBits.length ? ": " + extraBits.join(" · ") : ""}]`;
         obj.notes = obj.notes ? `${obj.notes} ${tag}` : tag;

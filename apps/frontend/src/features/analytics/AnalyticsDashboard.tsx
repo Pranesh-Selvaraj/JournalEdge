@@ -11,18 +11,21 @@ export function AnalyticsDashboard() {
   if (isError) return <p className="text-sm text-amber-300">Analytics unavailable ({String(error)}). Start backend + Postgres.</p>;
   if (!data) return null;
 
+  const fmtMoney = (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}`;
   const cards: Array<[string, string]> = [
     ["Total trades", String(data.totalTrades)],
     ["Win rate", `${data.winRate}%`],
     ["Total R", `${data.totalR.toFixed(2)}R`],
     ["Avg R", `${data.avgR.toFixed(2)}R`],
+    ["Total P&L", data.profitTrades > 0 ? fmtMoney(data.totalProfit) : "—"],
+    ["Avg P&L", data.profitTrades > 0 ? fmtMoney(data.avgProfit) : "—"],
     ["Best / Worst", `${data.bestR ?? "—"} / ${data.worstR ?? "—"}`],
     ["W / L / BE", `${data.wins} / ${data.losses} / ${data.breakeven}`],
   ];
 
   return (
     <div className="grid gap-6">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {cards.map(([k, v]) => (
           <div key={k} className="rounded-xl border border-slate-800 bg-slate-900 p-3">
             <p className="text-xs text-slate-400">{k}</p>

@@ -9,6 +9,7 @@ interface EditableRow {
   exitPrice: string;
   stopLoss: string;
   takeProfit: string;
+  profit: string;
   entryTime: string;
   exitTime: string;
   strategy: string;
@@ -47,6 +48,7 @@ function toEditable(r: Record<string, unknown>): EditableRow {
     exitPrice: str(r.exitPrice),
     stopLoss: str(r.stopLoss),
     takeProfit: str(r.takeProfit),
+    profit: str(r.profit),
     entryTime: r.entryTime ? new Date(str(r.entryTime)).toISOString().slice(0, 16) : "",
     exitTime: r.exitTime ? new Date(str(r.exitTime)).toISOString().slice(0, 16) : "",
     strategy: str(r.strategy),
@@ -133,6 +135,7 @@ export function HistoryImporter({ onImported }: { onImported?: () => void }) {
         exitPrice: numOrUndef(r.exitPrice),
         stopLoss: numOrUndef(r.stopLoss),
         takeProfit: numOrUndef(r.takeProfit),
+        profit: numOrUndef(r.profit),
         entryTime: r.entryTime ? new Date(r.entryTime) : undefined,
         exitTime: r.exitTime ? new Date(r.exitTime) : undefined,
         strategy: r.strategy.trim() || undefined,
@@ -224,6 +227,7 @@ export function HistoryImporter({ onImported }: { onImported?: () => void }) {
                   <th className="p-1">Exit</th>
                   <th className="p-1">SL</th>
                   <th className="p-1">TP</th>
+                  <th className="p-1">P&amp;L</th>
                   <th className="p-1">Entry time</th>
                   <th className="p-1">Exit time</th>
                   <th className="p-1">Strategy</th>
@@ -244,6 +248,7 @@ export function HistoryImporter({ onImported }: { onImported?: () => void }) {
                     <td className="p-1"><input value={r.exitPrice} onChange={(e) => updateRow(i, { exitPrice: e.target.value })} className={`${cell} w-20`} /></td>
                     <td className="p-1"><input value={r.stopLoss} onChange={(e) => updateRow(i, { stopLoss: e.target.value })} className={`${cell} w-20`} /></td>
                     <td className="p-1"><input value={r.takeProfit} onChange={(e) => updateRow(i, { takeProfit: e.target.value })} className={`${cell} w-20`} /></td>
+                    <td className="p-1"><input value={r.profit} onChange={(e) => updateRow(i, { profit: e.target.value })} className={`${cell} w-20`} placeholder="+/-" /></td>
                     <td className="p-1"><input type="datetime-local" value={r.entryTime} onChange={(e) => updateRow(i, { entryTime: e.target.value })} className={`${cell} w-36`} /></td>
                     <td className="p-1"><input type="datetime-local" value={r.exitTime} onChange={(e) => updateRow(i, { exitTime: e.target.value })} className={`${cell} w-36`} /></td>
                     <td className="p-1"><input value={r.strategy} onChange={(e) => updateRow(i, { strategy: e.target.value })} className={`${cell} w-24`} placeholder="strategy" /></td>

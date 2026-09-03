@@ -10,6 +10,9 @@ export interface AnalyticsSummary {
   avgR: number;
   bestR: number | null;
   worstR: number | null;
+  totalProfit: number;
+  avgProfit: number;
+  profitTrades: number;
   bySymbol: Array<{ symbol: string; trades: number; totalR: number; winRate: number }>;
   byStrategy: Array<{ strategy: string; trades: number; totalR: number; winRate: number }>;
   bySetupGrade: Array<{ grade: string; trades: number; totalR: number; winRate: number }>;
@@ -55,6 +58,9 @@ export function summarizeTrades(input: TradeRow[]): AnalyticsSummary {
   const breakeven = rs.filter((r) => r === 0).length;
   const totalR = rs.reduce((a, b) => a + b, 0);
 
+  const pnls = input.map((t) => num(t.profit)).filter((n): n is number => n != null);
+  const totalProfit = pnls.reduce((a, b) => a + b, 0);
+
   const sorted = [...input].sort((a, b) => {
     const ta = a.exitTime ?? a.entryTime ?? a.createdAt;
     const tb = b.exitTime ?? b.entryTime ?? b.createdAt;
@@ -83,6 +89,9 @@ export function summarizeTrades(input: TradeRow[]): AnalyticsSummary {
     avgR: rs.length === 0 ? 0 : Math.round((totalR / rs.length) * 10000) / 10000,
     bestR: rs.length ? Math.max(...rs) : null,
     worstR: rs.length ? Math.min(...rs) : null,
+    totalProfit: Math.round(totalProfit * 100) / 100,
+    avgProfit: pnls.length === 0 ? 0 : Math.round((totalProfit / pnls.length) * 100) / 100,
+    profitTrades: pnls.length,
     bySymbol: groupStats(input, (t) => t.symbol).map((g) => ({ symbol: g.key, trades: g.trades, totalR: g.totalR, winRate: g.winRate })),
     byStrategy: groupStats(input, (t) => t.strategy).map((g) => ({ strategy: g.key, trades: g.trades, totalR: g.totalR, winRate: g.winRate })),
     bySetupGrade: groupStats(input, (t) => t.setupGrade).map((g) => ({ grade: g.key, trades: g.trades, totalR: g.totalR, winRate: g.winRate })),

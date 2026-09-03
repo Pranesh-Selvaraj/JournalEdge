@@ -16,6 +16,8 @@ export const tradeSchema = z.object({
   stopLoss: z.coerce.number().positive().optional().nullable(),
   takeProfit: z.coerce.number().positive().optional().nullable(),
   rMultiple: z.coerce.number().optional().nullable(),
+  /** Realized profit/loss in account currency. Optional — outcome is derived from prices when absent. */
+  profit: z.coerce.number().optional().nullable(),
   entryTime: z.coerce.date().optional().nullable(),
   exitTime: z.coerce.date().optional().nullable(),
   strategy: z.string().max(128).optional().nullable(),
@@ -83,3 +85,40 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = registerSchema;
 export type LoginInput = z.infer<typeof loginSchema>;
+
+export const tradeOutcomeSchema = z.enum(["profit", "loss", "breakeven", "open"]);
+export type TradeOutcome = z.infer<typeof tradeOutcomeSchema>;
+
+function toNum(v: unknown): number | null {
+  if (v == null || v === "") return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Single source of truth for "is this trade a profit or a loss".
+ * An explicitly set P&L always wins (user-configured); otherwise the outcome
+ * is derived from exit vs entry price and direction. Trades without an exit
+ * price are still open.
+ */
+export function getTradeOutcome(t: {
+  direction: "long" | "short";
+  entryPrice: unknown;
+  exitPrice?: unknown;
+  profit?: unknown;
+}): TradeOutcome {
+  const pnl = toNum(t.profit);
+  if (pnl != null) return pnl > 0 ? "profit" : pnl < 0 ? "loss" : "breakeven";
+  const exit = toNum(t.exitPrice);
+  const entry = toNum(t.entryPrice);
+  if (exit == null || entry == null) return "open";
+  const diff = t.direction === "long" ? exit - entry : entry - exit;
+  return diff > 0 ? "profit" : diff < 0 ? "loss" : "breakeven";
+}
+
+export const OUTCOME_LABELS: Record<TradeOutcome, string> = {
+  profit: "Profit",
+  loss: "Loss",
+  breakeven: "Breakeven",
+  open: "Open",
+};
