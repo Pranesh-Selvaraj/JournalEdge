@@ -1,14 +1,4 @@
-# JournalEdge
-
-> **JournalEdge** — the product name and top-bar logo are always written as one word with a capital `J` and capital `E`.
-
-### Official wordmark
-
-The website uses this exact wordmark in the top bar:
-
-![JournalEdge official wordmark](./apps/frontend/public/journaledge-wordmark.svg)
-
-The visual lockup is **Journal** in soft white followed immediately by **Edge** in emerald green. Keep the spelling, capitalization, order, and colors unchanged.
+# ![JournalEdge official wordmark](./apps/frontend/public/journaledge-wordmark.svg)
 
 A personal trading journal dashboard with smart entry methods (copy-paste parsing, screenshot OCR, manual entry), historical tracking, and detailed analytics.
 
